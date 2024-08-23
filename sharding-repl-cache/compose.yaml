@@ -1,10 +1,4 @@
 services:
-  mongodb1:
-    container_name: mongodb1
-    image: mongo:latest
-    volumes:
-      - mongodb1_data_container:/data/db
-      
   sharding-repl-cache:
     container_name: sharding-repl-cache
     build: 
@@ -12,20 +6,17 @@ services:
       dockerfile: Dockerfile
     image: kazhem/pymongo_api:1.0.0
     depends_on:
-      - mongodb1
-      #- mongos_router
+      - mongos_router
     ports:
      - 8080:8080
     environment:
-      #MONGODB_URL: "mongodb://mongos_router"
-      #MONGODB_URL: "mongodb://localhost"
-      MONGODB_URL: "mongodb://mongodb1"
+      MONGODB_URL: "mongodb://mongos_router:27020"
       MONGODB_DATABASE_NAME: "somedb"
       REDIS_URL: "redis://redis:6379"
 
   #//сервер конфигурации
   configSrv:
-    image: mongo:latest # docker образ
+    image: mongo:latest 
     container_name: configSrv 
     restart: always
     ports:
@@ -37,7 +28,7 @@ services:
       - config-data:/data/db
     command:
       [
-        "--configsvr",  #//запуск в режиме конфигурации
+        "--configsvr",
         "--replSet",
         "config_server",
         "--bind_ip_all",
@@ -61,12 +52,12 @@ services:
         ipv4_address: 173.17.0.7
     command:
       [
-        "mongos", #//обычная mongo в режиме роутера
+        "mongos", 
         "--configdb", 
-        "config_server/configSrv:27017", #** //передача данных сервера конфигурации
+        "config_server/configSrv:27027", 
         "--bind_ip_all",
         "--port",
-        "27020"
+        "27020"     
       ]
     healthcheck:
       test: [ "CMD", "mongo", "--eval", "db.adminCommand('ping')" ]
@@ -87,9 +78,9 @@ services:
       - shard1-data:/data/db
     command:
       [
-        "--shardsvr", #//запуск в режиме шардинга
+        "--shardsvr", 
         "--replSet",
-        "shard1", #//название реплики
+        "shard1", 
         "--bind_ip_all",
         "--port",
         "27018"
@@ -113,10 +104,10 @@ services:
       - shard2-data:/data/db
     command:
       [
-        "--shardsvr", #//запуск в режиме шардинга
+        "--shardsvr",
         "--replSet",
-        "shard2", #//название реплик
-        "--bind_ip_all", #// обратите внимание - она отличается от реплики 1-го шарда
+        "shard2", 
+        "--bind_ip_all", 
         "--port",
         "27019"
       ]
@@ -126,7 +117,7 @@ services:
       start_period: 10s
    
   shard2-1:
-    image: mongo:latest # docker образ
+    image: mongo:latest 
     container_name: shard2-1
     restart: always
     ports:
@@ -143,7 +134,7 @@ services:
         "--bind_ip_all",
         "--port",
         "27021"
-      ] #команда для создания реплики
+      ] 
     healthcheck:
       test: [ "CMD", "mongo", "--eval", "db.adminCommand('ping')" ]
       interval: 5s
@@ -198,7 +189,7 @@ services:
       start_period: 10s
       
   shard1-1:
-    image: mongo:latest # docker образ
+    image: mongo:latest 
     container_name: shard1-1
     restart: always
     ports:
@@ -215,7 +206,7 @@ services:
         "--bind_ip_all",
         "--port",
         "27024"
-      ] #команда для создания реплики
+      ] 
     healthcheck:
       test: [ "CMD", "mongo", "--eval", "db.adminCommand('ping')" ]
       interval: 5s
@@ -294,11 +285,59 @@ services:
     networks:
       app-network:
         ipv4_address: 173.17.0.3
-        
-        
-        
-        
 
+  redis_3:
+    image: "redis:latest"
+    container_name: redis_3
+    ports:
+      - "6379"
+    volumes:
+      - redis_3_data:/data
+      - ./redis/redis.conf:/usr/local/etc/redis/redis.conf
+    command: [ "redis-server", "/usr/local/etc/redis/redis.conf" ]
+    networks:
+      app-network:
+        ipv4_address: 173.17.0.4
+
+  redis_4:
+    image: "redis:latest"
+    container_name: redis_4
+    ports:
+      - "6379"
+    volumes:
+      - redis_4_data:/data
+      - ./redis/redis.conf:/usr/local/etc/redis/redis.conf
+    command: [ "redis-server", "/usr/local/etc/redis/redis.conf" ]
+    networks:
+      app-network:
+        ipv4_address: 173.17.0.5
+
+  redis_5:
+    image: "redis:latest"
+    container_name: redis_5
+    ports:
+      - "6379"
+    volumes:
+      - redis_5_data:/data
+      - ./redis/redis.conf:/usr/local/etc/redis/redis.conf
+    command: [ "redis-server", "/usr/local/etc/redis/redis.conf" ]
+    networks:
+      app-network:
+        ipv4_address: 173.17.0.6
+
+  redis_6:
+    image: "redis:latest"
+    container_name: redis_6
+    ports:
+      - "6379"
+    volumes:
+      - redis_6_data:/data
+      - ./redis/redis.conf:/usr/local/etc/redis/redis.conf
+    command: [ "redis-server", "/usr/local/etc/redis/redis.conf" ]
+    networks:
+      app-network:
+        ipv4_address: 173.17.0.27
+        
 networks:
   app-network:
     driver: bridge
@@ -308,7 +347,6 @@ networks:
         - subnet: 173.17.0.0/16
 
 volumes:
-  mongodb1_data_container:
   config-data:
   shard1-data:
   shard2-data:  
@@ -317,6 +355,10 @@ volumes:
   shard2-3-data: 
   shard1-1-data:
   shard1-2-data:
-  shard1-3-data: 
+  shard1-3-data:  
   redis_1_data: {}
   redis_2_data: {}
+  redis_3_data: {}
+  redis_4_data: {}
+  redis_5_data: {}
+  redis_6_data: {}
